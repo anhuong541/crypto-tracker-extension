@@ -1,0 +1,137 @@
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica,
+    Arial, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol';
+  margin: 0;
+  padding: 0;
+  background-color: #f7f9fb; /* Light background similar to CoinMarketCap light mode */
+  color: #333; /* Dark text color */
+  min-width: 350px;
+}
+
+.container {
+  padding: 15px;
+}
+
+header {
+  text-align: center;
+  margin-bottom: 20px;
+}
+
+header h1 {
+  font-size: 1.5em;
+  color: #000; /* Darker heading color */
+  margin: 0;
+}
+
+.input-section {
+  display: flex;
+  margin-bottom: 20px;
+}
+
+#cryptoSymbolInput {
+  flex-grow: 1;
+  padding: 10px;
+  border: 1px solid #ddd; /* Lighter border */
+  border-radius: 4px;
+  background-color: #fff; /* White input background */
+  color: #333;
+  margin-right: 10px;
+  box-sizing: border-box;
+}
+
+#cryptoSymbolInput::placeholder {
+  color: #888; /* Slightly darker placeholder text */
+}
+
+#getPriceButton {
+  padding: 10px 15px;
+  background-color: #1a73e8; /* CoinMarketCap dark blue/purple for button */
+  color: #ffffff;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+}
+
+#getPriceButton:hover {
+  background-color: #0348a3; /* Slightly darker on hover */
+}
+
+.price-display-section {
+  margin-bottom: 20px;
+  padding: 10px;
+  background-color: #579ffd; /* White background for price display */
+  border: 1px solid #ddd; /* Lighter border */
+  border-radius: 4px;
+  text-align: center;
+}
+
+#currentPriceDisplay {
+  font-size: 1.2em;
+  font-weight: bold;
+  color: #17b35c; /* Green color for positive change/price (similar to CoinMarketCap) */
+}
+
+.selected-cryptos-section h2 {
+  font-size: 1.2em;
+  margin-top: 0;
+  margin-bottom: 10px;
+  color: #1a73e8; /* Medium gray for heading */
+  border-bottom: 1px solid #eee; /* Lighter separator line */
+  padding-bottom: 5px;
+}
+
+#selectedCryptosList {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+#selectedCryptosList li {
+  background-color: #ffffff;
+  border: 1px solid #eee;
+  padding: 10px;
+  margin-bottom: 8px;
+  border-radius: 4px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-left: 3px solid #1a73e8;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+}
+
+#selectedCryptosList li .crypto-info {
+  display: flex; /* Use flex to align icon and text */
+  align-items: center; /* Vertically center icon and text */
+  flex-grow: 1;
+  margin-right: 10px;
+}
+
+#selectedCryptosList li .crypto-icon {
+  width: 20px; /* Set desired icon size */
+  height: 20px;
+  margin-right: 8px; /* Space between icon and text */
+  vertical-align: middle; /* Align icon with text baseline */
+}
+
+#selectedCryptosList li .crypto-symbol-price span {
+  font-weight: bold;
+  margin-right: 5px; /* Space between symbol and price */
+}
+
+.remove-button {
+  background: none;
+  border: none;
+  color: #888;
+  cursor: pointer;
+  font-size: 1.8em;
+  padding: 0 5px;
+  line-height: 1;
+  opacity: 0.8;
+  transition: opacity 0.2s ease;
+}
+
+.remove-button:hover {
+  opacity: 1;
+  color: #e53e3e;
+}

@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Crypto Price Tracker</title>
+    <link rel="stylesheet" href="popup.css" />
+  </head>
+  <body>
+    <div class="container">
+      <header>
+        <h1>Crypto Price Tracker</h1>
+      </header>
+
+      <section class="input-section">
+        <input
+          type="text"
+          id="cryptoSymbolInput"
+          placeholder="Enter Crypto Symbol (e.g., BTC)"
+        />
+        <button id="getPriceButton">Track</button>
+      </section>
+
+      <section class="price-display-section">
+        <div id="currentPriceDisplay"></div>
+      </section>
+
+      <section class="selected-cryptos-section">
+        <h2>Tracking List</h2>
+        <ul id="selectedCryptosList">
+          <!-- Selected crypto prices will be added here by JavaScript -->
+        </ul>
+      </section>
+    </div>
+
+    <script src="popup.js"></script>
+  </body>
+</html>
