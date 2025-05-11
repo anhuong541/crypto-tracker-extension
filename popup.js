@@ -1,18 +1,88 @@
+// TODO: currently got cache the data but still not manage file run well!!!
+
 document.addEventListener('DOMContentLoaded', () => {
   const cryptoSymbolInput = document.getElementById('cryptoSymbolInput')
   const getPriceButton = document.getElementById('getPriceButton')
   const currentPriceDisplay = document.getElementById('currentPriceDisplay')
   const selectedCryptosList = document.getElementById('selectedCryptosList')
+  const skeletonItems = selectedCryptosList.querySelectorAll('.skeleton-item')
 
   // --- Configuration ---
   const API_KEY = 'YOUR_COINMARKETCAP_API_KEY' // Replace with your actual API key
   const API_URL_QUOTES =
     'https://pro-api.coinmarketcap.com/v1/cryptocurrency/quotes/latest'
   const API_URL_INFO =
-    'https://pro-api.coinmarketcap.com/v1/cryptocurrency/info' // New endpoint for info/logos
+    'https://pro-api.coinmarketcap.com/v1/cryptocurrency/info'
+  const CACHE_TIMEOUT = 30 * 1000 // 1 minute in milliseconds
 
-  // Function to fetch price and ID from CoinMarketCap API
-  async function fetchCryptoData(symbol) {
+  // --- Caching Functions ---
+
+  // Function to save data to local storage with a timestamp
+  function cacheData(key, data) {
+    const cacheItem = {
+      data: data,
+      timestamp: Date.now()
+    }
+    chrome.storage.local.set({ [key]: cacheItem })
+  }
+
+  // Function to retrieve data from local storage and check for validity
+  async function getCachedData(key) {
+    return new Promise((resolve) => {
+      chrome.storage.local.get([key], (result) => {
+        const cacheItem = result[key]
+        if (cacheItem && Date.now() - cacheItem.timestamp < CACHE_TIMEOUT) {
+          resolve(cacheItem.data) // Return cached data if valid
+        } else {
+          resolve(null) // Return null if no valid cache
+        }
+      })
+    })
+  }
+
+  // --- Loading UI Functions ---
+
+  // Function to show the skeleton loader
+  function showSkeleton() {
+    return
+    skeletonItems.forEach((item) => {
+      item.classList.add('visible')
+    })
+    // Optional: Hide existing items while loading, only if there are skeletons
+    if (skeletonItems.length > 0) {
+      selectedCryptosList
+        .querySelectorAll('li:not(.skeleton-item)')
+        .forEach((item) => {
+          item.style.display = 'none'
+        })
+    }
+  }
+
+  // Function to hide the skeleton loader and show actual items
+  function hideSkeleton() {
+    skeletonItems.forEach((item) => {
+      item.classList.remove('visible')
+    })
+    // Show actual items after hiding skeletons
+    selectedCryptosList
+      .querySelectorAll('li:not(.skeleton-item)')
+      .forEach((item) => {
+        item.style.display = 'flex' // Or your desired display type
+      })
+  }
+
+  // --- API Fetching Functions with Caching ---
+
+  // Function to fetch price and ID from CoinMarketCap API with caching
+  async function fetchCryptoDataWithCache(symbol) {
+    const cacheKey = `cryptoData_${symbol.toUpperCase()}`
+    const cachedData = await getCachedData(cacheKey)
+
+    if (cachedData) {
+      console.log(`Using cached data for ${symbol}`)
+      return cachedData
+    }
+
     if (!API_KEY || API_KEY === 'YOUR_COINMARKETCAP_API_KEY') {
       currentPriceDisplay.textContent =
         'Error: Please replace "YOUR_COINMARKETCAP_API_KEY" with your actual API key in popup.js'
@@ -51,7 +121,10 @@ document.addEventListener('DOMContentLoaded', () => {
       const price = data.data[symbol].quote.USD.price
       const id = data.data[symbol].id // Get the crypto ID
 
-      return { price, id }
+      const fetchedData = { price, id }
+      cacheData(cacheKey, fetchedData) // Cache the fetched data
+
+      return fetchedData
     } catch (error) {
       console.error('Fetch Error (quotes):', error)
       currentPriceDisplay.textContent =
@@ -60,10 +133,18 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   }
 
-  // Function to fetch crypto info (including logo) by ID
-  async function fetchCryptoInfo(id) {
+  // Function to fetch crypto info (including logo) by ID with caching
+  async function fetchCryptoInfoWithCache(id) {
+    const cacheKey = `cryptoInfo_${id}`
+    const cachedLogoUrl = await getCachedData(cacheKey)
+
+    if (cachedLogoUrl) {
+      console.log(`Using cached logo for ID ${id}`)
+      return cachedLogoUrl
+    }
+
     if (!API_KEY || API_KEY === 'YOUR_COINMARKETCAP_API_KEY') {
-      return null // Should be caught by fetchCryptoData, but good practice
+      return null
     }
     try {
       const response = await fetch(`${API_URL_INFO}?id=${id}`, {
@@ -83,26 +164,37 @@ document.addEventListener('DOMContentLoaded', () => {
         console.warn('API Response Warning: Logo not found for ID', id, data)
         return null
       }
-      return data.data[id].logo // Return the logo URL
+      const logoUrl = data.data[id].logo
+      cacheData(cacheKey, logoUrl) // Cache the logo URL
+      return logoUrl
     } catch (error) {
       console.error('Fetch Error (info):', error)
       return null
     }
   }
 
-  // Function to add a selected crypto to the list and fetch its data and icon
+  // Function to display price (Less critical now)
+  function displayPrice(symbol, price) {
+    if (price !== null) {
+      currentPriceDisplay.textContent = `${symbol}: $${price.toFixed(2)}`
+    } else {
+      currentPriceDisplay.textContent = `Could not get price for ${symbol}.`
+    }
+  }
+
+  // Function to add a selected crypto to the list and fetch its data and icon with caching
   async function addSelectedCrypto(symbol) {
-    const cryptoData = await fetchCryptoData(symbol.toUpperCase())
+    // The show/hide skeleton logic will be handled by the calling function (initial load or button click)
+    const cryptoData = await fetchCryptoDataWithCache(symbol.toUpperCase())
     const existingItem = selectedCryptosList.querySelector(
       `li[data-symbol="${symbol.toUpperCase()}"]`
     )
 
     if (cryptoData) {
       const { price, id } = cryptoData
-      const logoUrl = await fetchCryptoInfo(id) // Fetch the logo URL
+      const logoUrl = await fetchCryptoInfoWithCache(id)
 
       if (existingItem) {
-        // Update the existing item's price and potentially logo if needed (though logos rarely change)
         existingItem.querySelector(
           '.crypto-symbol-price span'
         ).textContent = `${symbol.toUpperCase()}:`
@@ -111,20 +203,20 @@ document.addEventListener('DOMContentLoaded', () => {
         ).lastChild.textContent = `$${price.toFixed(2)}`
 
         if (logoUrl && !existingItem.querySelector('.crypto-icon')) {
-          // If logo wasn't there before, add it
           const iconImg = document.createElement('img')
           iconImg.classList.add('crypto-icon')
           iconImg.src = logoUrl
-          existingItem.querySelector('.crypto-info').prepend(iconImg) // Add icon before the symbol/price
+          existingItem.querySelector('.crypto-info').prepend(iconImg)
         } else if (logoUrl && existingItem.querySelector('.crypto-icon')) {
-          // If logo exists, ensure the src is correct (less likely to change)
           existingItem.querySelector('.crypto-icon').src = logoUrl
+        } else if (!logoUrl && existingItem.querySelector('.crypto-icon')) {
+          existingItem.querySelector('.crypto-icon').remove()
         }
       } else {
         const listItem = document.createElement('li')
         listItem.setAttribute('data-symbol', symbol.toUpperCase())
 
-        const cryptoInfoDiv = document.createElement('div') // Container for icon and symbol/price
+        const cryptoInfoDiv = document.createElement('div')
         cryptoInfoDiv.classList.add('crypto-info')
 
         if (logoUrl) {
@@ -133,19 +225,17 @@ document.addEventListener('DOMContentLoaded', () => {
           iconImg.src = logoUrl
           cryptoInfoDiv.appendChild(iconImg)
         } else {
-          // Optional: Add a placeholder or default icon if logo not found
           console.warn(`Logo not available for ${symbol}`)
-          // You could add a default icon here
         }
 
-        const symbolPriceSpan = document.createElement('span') // Container for symbol and price
+        const symbolPriceSpan = document.createElement('span')
         symbolPriceSpan.classList.add('crypto-symbol-price')
         symbolPriceSpan.innerHTML = `<span>${symbol.toUpperCase()}:</span> $${price.toFixed(
           2
-        )}` // Use innerHTML for easier formatting
+        )}`
 
         cryptoInfoDiv.appendChild(symbolPriceSpan)
-        listItem.appendChild(cryptoInfoDiv) // Add the info div to the list item
+        listItem.appendChild(cryptoInfoDiv)
 
         const removeButton = document.createElement('button')
         removeButton.classList.add('remove-button')
@@ -167,7 +257,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         const symbolPriceSpan = document.createElement('span')
         symbolPriceSpan.classList.add('crypto-symbol-price')
-        symbolPriceSpan.innerHTML = `<span>${symbol.toUpperCase()}:</span> Error getting price` // Use innerHTML
+        symbolPriceSpan.innerHTML = `<span>${symbol.toUpperCase()}:</span> Error getting price`
         cryptoInfoDiv.appendChild(symbolPriceSpan)
         listItem.appendChild(cryptoInfoDiv)
 
@@ -187,7 +277,6 @@ document.addEventListener('DOMContentLoaded', () => {
         existingItem.querySelector(
           '.crypto-symbol-price'
         ).lastChild.textContent = ` Error getting price`
-        // If logo fetching failed previously, and it's still not found, we don't do anything with the icon
       }
     }
   }
@@ -208,13 +297,19 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   // Load selected cryptos from storage on startup
-  chrome.storage.sync.get(['selectedCryptos'], (result) => {
-    if (result.selectedCryptos) {
-      Promise.all(
-        result.selectedCryptos.forEach((crypto) => {
-          addSelectedCrypto(crypto) // Fetch and display price for saved cryptos
-        })
-      )
+  chrome.storage.sync.get(['selectedCryptos'], async (result) => {
+    if (result.selectedCryptos && result.selectedCryptos.length > 0) {
+      // Show skeleton before starting the loop
+      showSkeleton()
+      for (const crypto of result.selectedCryptos) {
+        // We don't call hideSkeleton here, it will be called once after the loop
+        await addSelectedCrypto(crypto)
+      }
+      // Hide skeleton only after all cryptos are processed
+      hideSkeleton()
+    } else {
+      // If there are no saved cryptos, just hide the skeleton immediately
+      hideSkeleton()
     }
   })
 
@@ -222,25 +317,32 @@ document.addEventListener('DOMContentLoaded', () => {
   getPriceButton.addEventListener('click', async () => {
     const symbol = cryptoSymbolInput.value.trim().toUpperCase()
     if (symbol) {
-      // Add the selected crypto to storage and the list
-      chrome.storage.sync.get(['selectedCryptos'], (result) => {
+      // Show skeleton if the crypto is not already being tracked
+      chrome.storage.sync.get(['selectedCryptos'], async (result) => {
+        // Added async here
         const selectedCryptos = result.selectedCryptos || []
-        if (!selectedCryptos.includes(symbol)) {
+        const isAlreadyTracking = selectedCryptos.includes(symbol)
+
+        if (!isAlreadyTracking) {
+          showSkeleton()
           selectedCryptos.push(symbol)
-          chrome.storage.sync.set({ selectedCryptos }, () => {
-            addSelectedCrypto(symbol) // Add to the list and fetch price
+          chrome.storage.sync.set({ selectedCryptos }, async () => {
+            // Added async here
+            await addSelectedCrypto(symbol) // Wait for adding and fetching
+            hideSkeleton() // Hide after adding the new crypto
           })
         } else {
-          // If already in list, just update the display price and logo in the list
-          addSelectedCrypto(symbol)
+          // If already in list, just update the display price and logo in the list using cache
+          // Check if cache is expired before potentially showing skeleton
+          const cachedData = await getCachedData(`cryptoData_${symbol}`)
+          if (!cachedData) {
+            showSkeleton()
+          }
+          await addSelectedCrypto(symbol) // This will use cache if valid
+          hideSkeleton() // Hide after update (even if from cache)
         }
       })
       cryptoSymbolInput.value = '' // Clear the input field
     }
   })
-
-  // You would typically add logic here to periodically update the prices in the list
-  // using chrome.alarms or similar background mechanisms.
-  // For a basic update, you could iterate through the selected cryptos in storage
-  // and call addSelectedCrypto for each one on an interval.
 })

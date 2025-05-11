@@ -135,3 +135,74 @@ header h1 {
   opacity: 1;
   color: #e53e3e;
 }
+
+.skeleton-item {
+  background-color: #e0e0e0; /* Light gray background for skeleton item */
+  border: 1px solid #ccc;
+  padding: 10px;
+  margin-bottom: 8px;
+  border-radius: 4px;
+  display: none; /* Hide by default */
+  align-items: center;
+  justify-content: space-between;
+  overflow: hidden; /* Hide the animation overflow */
+  position: relative; /* For the pseudo-element animation */
+}
+
+.skeleton-item::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%; /* Start outside the item */
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(255, 255, 255, 0.5),
+    transparent
+  );
+  animation: loading 1.5s infinite;
+}
+
+.skeleton-item.visible {
+  display: flex; /* Show when the 'visible' class is added */
+}
+
+.skeleton-line {
+  height: 1em; /* Height similar to text line */
+  background-color: #ccc; /* Gray color for skeleton lines */
+  border-radius: 4px;
+  margin: 5px 0;
+}
+
+.skeleton-line.short {
+  width: 30%; /* Shorter line width */
+}
+
+.skeleton-line.long {
+  width: 60%; /* Longer line width */
+}
+
+@keyframes loading {
+  0% {
+    left: -100%;
+  }
+  100% {
+    left: 100%; /* Move across the item */
+  }
+}
+
+/* Ensure actual list items are styled correctly when visible */
+#selectedCryptosList li:not(.skeleton-item) {
+  background-color: #ffffff;
+  border: 1px solid #eee;
+  padding: 10px;
+  margin-bottom: 8px;
+  border-radius: 4个体;
+  display: flex; /* Ensure actual items are flex */
+  justify-content: space-between;
+  align-items: center;
+  border-left: 3px solid #181f36;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+}
